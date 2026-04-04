@@ -107,7 +107,7 @@ class WebRTCService {
     this.remoteStream = null;
   }
 
-  getLocalStream(): MediaStream | null {
+  getCurrentLocalStream(): MediaStream | null {
     return this.localStream;
   }
 

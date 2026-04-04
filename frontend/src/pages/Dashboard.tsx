@@ -65,9 +65,7 @@ const Dashboard: React.FC = () => {
     // Friend request received
     socketService.onFriendRequest((req: any) => {
       addReceivedRequest(req);
-      toast.info(`${req.sender?.displayName || req.sender?.username} sent you a friend request`, {
-        icon: '👥',
-      });
+      toast.info(`${req.sender?.displayName || req.sender?.username} sent you a friend request`);
     });
 
     // Friend accepted
@@ -234,7 +232,7 @@ const Dashboard: React.FC = () => {
               { key: 'friends', icon: <FiUsers size={15} />, label: 'Friends' },
               { key: 'requests', icon: <FiBell size={15} />, label: 'Requests', badge: pendingRequestCount },
               { key: 'search', icon: <FiSearch size={15} />, label: 'Search' },
-            ] as const).map((tab) => (
+            ] as { key: SidebarTab; icon: React.ReactNode; label: string; badge?: number }[]).map((tab) => (
               <button
                 key={tab.key}
                 id={`tab-${tab.key}`}
