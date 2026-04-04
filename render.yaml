@@ -19,9 +19,8 @@ services:
         sync: false
 
   # The Frontend Static Site
-  - type: web
+  - type: static
     name: kurakani-frontend
-    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
