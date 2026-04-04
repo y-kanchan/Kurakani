@@ -16,14 +16,22 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://kurakani-frontend.onrender.com
 
   # The Frontend Static Site
-  - type: static
+  - type: web
     name: kurakani-frontend
+    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    publishPath: dist
     envVars:
       - key: NODE_ENV
         value: production
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://kurakani-backend.onrender.com/api/*
+      - type: rewrite
+        source: /uploads/*
+        destination: https://kurakani-backend.onrender.com/uploads/*
