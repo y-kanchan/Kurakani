@@ -35,12 +35,12 @@ const getInitials = (name: string) => {
 
 const getGradient = (name: string) => {
   const gradients = [
-    'from-cyan-500 to-blue-600',
-    'from-purple-500 to-pink-600',
-    'from-green-500 to-teal-600',
-    'from-orange-500 to-red-600',
-    'from-yellow-500 to-orange-600',
-    'from-indigo-500 to-purple-600',
+    'from-pink-400 to-romantic-deep-pink',
+    'from-romantic-deep-pink to-purple-600',
+    'from-magenta-500 to-pink-500',
+    'from-rose-400 to-pink-600',
+    'from-fuchsia-500 to-purple-500',
+    'from-pink-300 to-pink-500',
   ];
   const index = name.charCodeAt(0) % gradients.length;
   return gradients[index];
@@ -73,7 +73,7 @@ const Avatar: React.FC<AvatarProps> = ({
       )}
       {isOnline && (
         <span
-          className={`absolute bottom-0 right-0 ${dotSizeMap[size]} bg-green-400 border-gray-900 rounded-full`}
+          className={`absolute bottom-0 right-0 ${dotSizeMap[size]} bg-pink-400 border-gray-950 rounded-full`}
         />
       )}
     </div>

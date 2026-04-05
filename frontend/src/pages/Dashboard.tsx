@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
               <h2 className="font-bold text-white text-sm leading-tight">
                 {user?.displayName || user?.username}
               </h2>
-              <p className="text-xs text-green-400 font-medium">Online</p>
+              <p className="text-xs text-pink-400 font-medium">Online</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -239,7 +239,7 @@ const Dashboard: React.FC = () => {
                 onClick={() => setSidebarTab(tab.key)}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-xs font-medium transition-all duration-200 relative ${
                   sidebarTab === tab.key
-                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20'
+                    ? 'bg-pink-500/15 text-pink-400 border border-pink-500/20'
                     : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -312,7 +312,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <p className="text-xs text-gray-500 truncate">
                         {friend.isOnline
-                          ? '🟢 Online'
+                          ? '💗 Online'
                           : `Last seen ${formatLastSeen(friend.lastSeen)}`}
                       </p>
                     </div>
@@ -392,9 +392,9 @@ const Dashboard: React.FC = () => {
             <div className="text-center animate-fade-in">
               {/* Gradient orb */}
               <div className="relative mx-auto w-32 h-32 mb-6">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-600/20 blur-2xl" />
-                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-cyan-500/10 to-purple-600/10 border border-white/5 flex items-center justify-center">
-                  <FiMessageSquare size={40} className="text-cyan-500/60" />
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/20 to-romantic-deep-pink/20 blur-2xl" />
+                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-pink-500/10 to-romantic-deep-pink/10 border border-white/5 flex items-center justify-center">
+                  <FiMessageSquare size={40} className="text-pink-500/60" />
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Your Messages</h2>

@@ -144,18 +144,18 @@ const CallModal: React.FC = () => {
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in">
       <div className="glass-card rounded-3xl p-8 flex flex-col items-center gap-6 w-[320px] animate-scale-in text-center">
         {/* Call type icon */}
-        <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
           {callType === 'video' ? (
-            <FiVideo size={22} className="text-cyan-400" />
+            <FiVideo size={22} className="text-pink-400" />
           ) : (
-            <FiPhone size={22} className="text-cyan-400" />
+            <FiPhone size={22} className="text-pink-400" />
           )}
         </div>
 
         {/* Caller info */}
         <div className="relative">
           {/* Pulse rings */}
-          <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" />
+          <div className="absolute inset-0 rounded-full bg-pink-500/20 animate-ping" />
           <Avatar
             src={displayUser?.profilePic}
             name={displayUser?.displayName || displayUser?.username}

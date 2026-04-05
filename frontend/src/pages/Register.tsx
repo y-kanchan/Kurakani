@@ -53,8 +53,8 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-mesh flex items-center justify-center p-4">
       {/* Ambient blobs */}
-      <div className="fixed top-[-100px] right-[-100px] w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
-      <div className="fixed bottom-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+      <div className="fixed top-[-100px] right-[-100px] w-[500px] h-[500px] rounded-full bg-romantic-deep-pink/10 blur-3xl pointer-events-none" />
+      <div className="fixed bottom-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md animate-slide-up">
         {/* Logo */}
@@ -183,7 +183,7 @@ const Register: React.FC = () => {
             Already have an account?{' '}
             <Link
               to="/login"
-              className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors"
+              className="text-pink-400 font-semibold hover:text-pink-300 transition-colors"
             >
               Sign in
             </Link>

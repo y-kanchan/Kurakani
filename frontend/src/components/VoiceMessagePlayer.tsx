@@ -62,7 +62,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ url, isSent = f
         className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
           isSent
             ? 'bg-black/20 text-black hover:bg-black/30'
-            : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
+            : 'bg-pink-500/20 text-pink-400 hover:bg-pink-500/30'
         }`}
       >
         {isPlaying ? <FiPause size={16} /> : <FiPlay size={16} className="ml-0.5" />}
@@ -80,7 +80,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ url, isSent = f
                 isActive
                   ? isSent
                     ? 'bg-black/60'
-                    : 'bg-cyan-400'
+                    : 'bg-pink-400'
                   : isSent
                   ? 'bg-black/25'
                   : 'bg-white/20'

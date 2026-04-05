@@ -79,7 +79,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, disa
         className={`btn-icon transition-all duration-200 ${
           isRecording
             ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse'
-            : 'hover:bg-cyan-500/10 hover:border-cyan-500/30 hover:text-cyan-400'
+            : 'hover:bg-pink-500/10 hover:border-pink-500/30 hover:text-pink-400'
         }`}
       >
         {isRecording ? <FiSquare size={16} /> : <FiMic size={16} />}

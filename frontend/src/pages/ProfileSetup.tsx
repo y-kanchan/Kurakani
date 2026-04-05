@@ -79,14 +79,14 @@ const ProfileSetup: React.FC = () => {
   return (
     <div className="min-h-screen bg-mesh flex items-center justify-center p-4">
       {/* Blobs */}
-      <div className="fixed top-0 right-0 w-96 h-96 rounded-full bg-cyan-500/6 blur-3xl pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-96 h-96 rounded-full bg-purple-600/6 blur-3xl pointer-events-none" />
+      <div className="fixed top-0 right-0 w-96 h-96 rounded-full bg-pink-500/6 blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-96 h-96 rounded-full bg-romantic-deep-pink/6 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-lg animate-slide-up">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-600 mb-4">
-            <span className="text-xl font-black text-white">A</span>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-400 to-romantic-deep-pink mb-4">
+            <span className="text-xl font-black text-white">K</span>
           </div>
           <h1 className="text-2xl font-black text-white">Set Up Your Profile</h1>
           <p className="text-gray-400 text-sm mt-1">Let people know who you are</p>
@@ -104,10 +104,10 @@ const ProfileSetup: React.FC = () => {
                   <img
                     src={previewUrl}
                     alt="Profile preview"
-                    className="w-28 h-28 rounded-full object-cover ring-2 ring-cyan-500/40"
+                    className="w-28 h-28 rounded-full object-cover ring-2 ring-pink-500/40"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white ring-2 ring-cyan-500/40">
+                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-pink-400 to-romantic-deep-pink flex items-center justify-center text-3xl font-bold text-white ring-2 ring-pink-500/40">
                     {initials}
                   </div>
                 )}
@@ -119,7 +119,7 @@ const ProfileSetup: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-medium flex items-center gap-1"
+                className="text-sm text-pink-400 hover:text-pink-300 transition-colors font-medium flex items-center gap-1"
               >
                 <FiCamera size={14} />
                 {previewUrl ? 'Change photo' : 'Upload photo'}

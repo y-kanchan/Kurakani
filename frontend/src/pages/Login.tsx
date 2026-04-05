@@ -41,8 +41,8 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-mesh flex items-center justify-center p-4">
       {/* Ambient blobs */}
-      <div className="fixed top-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
-      <div className="fixed bottom-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-purple-600/8 blur-3xl pointer-events-none" />
+      <div className="fixed top-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-pink-500/8 blur-3xl pointer-events-none" />
+      <div className="fixed bottom-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-romantic-deep-pink/8 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md animate-slide-up">
         {/* Branding */}
@@ -135,7 +135,7 @@ const Login: React.FC = () => {
             Don't have an account?{' '}
             <Link
               to="/register"
-              className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors"
+              className="text-pink-400 font-semibold hover:text-pink-300 transition-colors"
             >
               Create one
             </Link>

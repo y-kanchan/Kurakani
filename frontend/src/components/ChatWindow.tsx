@@ -215,9 +215,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
           </h3>
           <p className="text-xs truncate">
             {isTyping && typingUserId === activeChat._id ? (
-              <span className="text-cyan-400 font-medium">typing...</span>
+              <span className="text-pink-400 font-medium">typing...</span>
             ) : activeChat.isOnline ? (
-              <span className="text-green-400">Online</span>
+              <span className="text-pink-400">Online</span>
             ) : (
               <span className="text-gray-500">
                 Last seen {formatLastSeen(activeChat.lastSeen)}
@@ -259,7 +259,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="w-2.5 h-2.5 rounded-full bg-cyan-500/60 animate-bounce"
+                  className="w-2.5 h-2.5 rounded-full bg-pink-500/60 animate-bounce"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}

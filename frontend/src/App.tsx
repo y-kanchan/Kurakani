@@ -6,6 +6,7 @@ import ProfileSetup from './pages/ProfileSetup';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import CallModal from './components/CallModal';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
@@ -72,21 +73,8 @@ function App() {
           }
         />
 
-        {/* Default redirect */}
-        <Route
-          path="/"
-          element={
-            isAuthenticated ? (
-              !user?.profileSetupComplete ? (
-                <Navigate to="/profile-setup" replace />
-              ) : (
-                <Navigate to="/dashboard" replace />
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+        {/* Default route: Landing Page */}
+        <Route path="/" element={<LandingPage />} />
 
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />

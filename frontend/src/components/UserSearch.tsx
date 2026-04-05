@@ -64,7 +64,7 @@ const UserSearch: React.FC = () => {
         />
         {isSearching && (
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-            <svg className="animate-spin h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -92,7 +92,7 @@ const UserSearch: React.FC = () => {
             <p className="text-xs text-gray-500">@{u.username}</p>
           </div>
           {isFriend(u._id) ? (
-            <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+            <span className="flex items-center gap-1 text-xs text-pink-400 font-medium">
               <FiCheck size={13} /> Friends
             </span>
           ) : hasSentRequest(u._id) ? (
@@ -101,7 +101,7 @@ const UserSearch: React.FC = () => {
             <button
               id={`add-friend-${u._id}`}
               onClick={() => handleSendRequest(u)}
-              className="btn-icon w-8 h-8 flex-shrink-0 hover:bg-cyan-500/20 hover:text-cyan-400 hover:border-cyan-500/30"
+              className="btn-icon w-8 h-8 flex-shrink-0 hover:bg-pink-500/20 hover:text-pink-400 hover:border-pink-500/30"
               title="Send friend request"
             >
               <FiUserPlus size={15} />
