@@ -37,7 +37,7 @@ const LandingPage: React.FC = () => {
         videoId: 'OsyczbZc1Mg',
         playerVars: {
           autoplay: 1,
-          mute: 1, // Start muted to bypass autoplay block
+          mute: 1, // Start muted to bypass autoplay block (browser policy)
           controls: 0,
           showinfo: 0,
           rel: 0,
@@ -49,14 +49,13 @@ const LandingPage: React.FC = () => {
         events: {
           onReady: (event: any) => {
             event.target.playVideo();
-            // If already interacted, unmute immediately
+            // If user already interacted before player was ready, unmute now
             if (hasInteracted) {
               event.target.unMute();
               event.target.setVolume(100);
             }
           },
           onStateChange: (event: any) => {
-            // Re-play if ended/paused to ensure looping background music
             if (event.data === window.YT.PlayerState.ENDED) {
               event.target.playVideo();
             }
@@ -110,27 +109,18 @@ const LandingPage: React.FC = () => {
     if (isEntering) return;
     setIsEntering(true);
     
-    // Slow fade out music
-    if (playerRef.current && typeof playerRef.current.getVolume === 'function') {
-      let volume = playerRef.current.getVolume();
-      const fadeInterval = setInterval(() => {
-        if (volume > 0) {
-          volume -= 5;
-          playerRef.current.setVolume(Math.max(0, volume));
-        } else {
-          clearInterval(fadeInterval);
-          playerRef.current.stopVideo();
-        }
-      }, 100); 
+    // Stop music immediately as requested
+    if (playerRef.current && typeof playerRef.current.stopVideo === 'function') {
+      playerRef.current.stopVideo();
     }
     
-    // Navigation after fade out
+    // Quick navigation for immediate feel
     setTimeout(() => {
       const target = isAuthenticated 
         ? (!user?.profileSetupComplete ? '/profile-setup' : '/dashboard')
         : '/register'; 
       navigate(target);
-    }, 2500);
+    }, 800); // Small delay for the "Entering Journey" button state to show
   };
 
   return (

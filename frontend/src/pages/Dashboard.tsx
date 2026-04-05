@@ -38,6 +38,10 @@ const Dashboard: React.FC = () => {
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
+  // Notification sound
+  const notificationAudio = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'));
+
+
   // ─── Init socket ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
@@ -50,10 +54,14 @@ const Dashboard: React.FC = () => {
       updateFriendStatusStore(userId, isOnline, lastSeen as unknown as string);
     });
 
-    // Incoming messages (from others while NOT in that chat)
+    // Incoming messages
     socketService.onMessage((msg: any) => {
       const senderId = msg.sender?._id || msg.sender;
       addMessage(msg);
+
+      // Play notification sound
+      notificationAudio.current.play().catch(e => console.log('Audio play failed:', e));
+
       if (!activeChat || activeChat._id !== senderId) {
         incrementUnread(senderId);
         toast.info(`New message from ${msg.sender?.displayName || 'someone'}`, {
