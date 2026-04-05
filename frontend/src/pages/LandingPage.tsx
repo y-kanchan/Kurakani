@@ -15,6 +15,7 @@ const LandingPage: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
   const [isEntering, setIsEntering] = useState(false);
   const [hearts, setHearts] = useState<{ id: number; left: string; delay: string; size: string }[]>([]);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const playerRef = useRef<any>(null);
 
   // Load YouTube IFrame API
@@ -27,34 +28,48 @@ const LandingPage: React.FC = () => {
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
     }
 
-    window.onYouTubeIframeAPIReady = () => {
+    const initPlayer = () => {
+      if (playerRef.current) return; // Avoid double init
+      
       playerRef.current = new window.YT.Player('youtube-player', {
-        height: '0',
-        width: '0',
+        height: '1',
+        width: '1',
         videoId: 'OsyczbZc1Mg',
         playerVars: {
-          autoplay: 1, // Try to autoplay
-          mute: 0,
+          autoplay: 1,
+          mute: 1, // Start muted to bypass autoplay block
           controls: 0,
           showinfo: 0,
           rel: 0,
+          loop: 1,
+          playlist: 'OsyczbZc1Mg', // Required for loop
           enablejsapi: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: (event: any) => {
-            // Some browsers require explicit play call
             event.target.playVideo();
-            // Ensure unmuted
-            event.target.unMute();
-            event.target.setVolume(100);
+            // If already interacted, unmute immediately
+            if (hasInteracted) {
+              event.target.unMute();
+              event.target.setVolume(100);
+            }
           },
+          onStateChange: (event: any) => {
+            // Re-play if ended/paused to ensure looping background music
+            if (event.data === window.YT.PlayerState.ENDED) {
+              event.target.playVideo();
+            }
+          }
         },
       });
     };
 
+    window.onYouTubeIframeAPIReady = initPlayer;
+
     // If script already loaded, it won't trigger onYouTubeIframeAPIReady again
     if (window.YT && window.YT.Player) {
-      window.onYouTubeIframeAPIReady();
+      initPlayer();
     }
 
     // Generate random floating hearts
@@ -66,8 +81,25 @@ const LandingPage: React.FC = () => {
     }));
     setHearts(newHearts);
 
+    // Click anywhere to unmute (Autoplay workaround)
+    const handleFirstInteraction = () => {
+      setHasInteracted(true);
+      if (playerRef.current && typeof playerRef.current.unMute === 'function') {
+        playerRef.current.unMute();
+        playerRef.current.setVolume(100);
+        playerRef.current.playVideo();
+      }
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+
     // Cleanup on unmount
     return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
       if (playerRef.current && typeof playerRef.current.stopVideo === 'function') {
         playerRef.current.stopVideo();
       }
@@ -89,14 +121,14 @@ const LandingPage: React.FC = () => {
           clearInterval(fadeInterval);
           playerRef.current.stopVideo();
         }
-      }, 100); // 2 seconds fade out (approximately)
+      }, 100); 
     }
     
     // Navigation after fade out
     setTimeout(() => {
       const target = isAuthenticated 
         ? (!user?.profileSetupComplete ? '/profile-setup' : '/dashboard')
-        : '/register'; // Direct to signup page as requested
+        : '/register'; 
       navigate(target);
     }, 2500);
   };
