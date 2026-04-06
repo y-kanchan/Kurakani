@@ -25,7 +25,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('kurakani_token');
       localStorage.removeItem('kurakani_user');
-      window.location.href = '/login';
+      // Only redirect if not already on login/register to avoid loops and allow showing error toasts
+      if (!['/login', '/register'].includes(window.location.pathname)) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

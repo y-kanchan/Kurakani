@@ -43,7 +43,11 @@ const Register: React.FC = () => {
         toast.success('Account created! Set up your profile 🎉');
         navigate('/profile-setup');
       } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Registration failed');
+        if (err.message === 'Network Error') {
+          toast.error('Cannot connect to server. Is the backend running? 🔌');
+        } else {
+          toast.error(err.response?.data?.message || 'Registration failed');
+        }
       } finally {
         setIsLoading(false);
       }

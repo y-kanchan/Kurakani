@@ -53,7 +53,7 @@ const register = async (req, res) => {
       user: user.toJSON(),
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('❌ Register error:', error);
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
       return res.status(400).json({ message: `${field} already in use` });
@@ -82,11 +82,13 @@ const login = async (req, res) => {
     });
 
     if (!user) {
+      console.warn(`⚠️ Login failed: User not found for ${identifier}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.warn(`⚠️ Login failed: Invalid password for ${identifier}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

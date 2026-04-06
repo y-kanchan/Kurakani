@@ -31,7 +31,11 @@ const Login: React.FC = () => {
           navigate('/dashboard');
         }
       } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Login failed');
+        if (err.message === 'Network Error') {
+          toast.error('Cannot connect to server. Is the backend running? 🔌');
+        } else {
+          toast.error(err.response?.data?.message || 'Login failed');
+        }
       } finally {
         setIsLoading(false);
       }
