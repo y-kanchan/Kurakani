@@ -21,6 +21,8 @@ import UserSearch from '../components/UserSearch';
 import FriendRequests from '../components/FriendRequests';
 import { formatLastSeen } from '../utils/dateUtils';
 import type { User } from '../stores/useAuthStore';
+import FluidBackground from '../components/FluidBackground';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type SidebarTab = 'chats' | 'friends' | 'requests' | 'search';
 
@@ -171,10 +173,12 @@ const Dashboard: React.FC = () => {
   const pendingRequestCount = receivedRequests.length;
 
   return (
-    <div className="flex h-screen bg-dark-bg overflow-hidden">
+    <div className="flex h-screen overflow-hidden font-sans">
+      <FluidBackground />
+
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
-        className={`${mobileShowChat ? 'hidden' : 'flex'} md:flex flex-col w-full md:w-[340px] lg:w-[380px] glass border-r border-white/5 flex-shrink-0`}
+        className={`${mobileShowChat ? 'hidden' : 'flex'} md:flex flex-col w-full md:w-[340px] lg:w-[360px] glass-v2 border-r border-white/5 flex-shrink-0 z-10 transition-all duration-300`}
       >
         {/* Header */}
         <div className="px-4 pt-5 pb-3 flex items-center justify-between">
@@ -264,121 +268,132 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-3 pb-4">
-          {/* ── Chats Tab ── */}
-          {sidebarTab === 'chats' && (
-            <div className="space-y-1">
-              {isLoadingFriends ? (
-                <div className="space-y-2 pt-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse">
-                      <div className="w-11 h-11 rounded-full bg-white/5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="h-3 bg-white/5 rounded w-2/3 mb-2" />
-                        <div className="h-2 bg-white/5 rounded w-1/2" />
-                      </div>
+        <div className="flex-1 overflow-y-auto px-3 pb-4 custom-scrollbar">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={sidebarTab}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* ── Chats Tab ── */}
+              {sidebarTab === 'chats' && (
+                <div className="space-y-1">
+                  {isLoadingFriends ? (
+                    <div className="space-y-2 pt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse bg-white/5" />
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : friends.length === 0 ? (
-                <div className="text-center py-12">
-                  <FiUsers size={32} className="text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">No friends yet</p>
-                  <button
-                    onClick={() => setSidebarTab('search')}
-                    className="btn-secondary mt-3 py-2 px-4 text-xs"
-                  >
-                    Find People
-                  </button>
-                </div>
-              ) : (
-                friends.map((friend) => (
-                  <button
-                    key={friend._id}
-                    id={`chat-item-${friend._id}`}
-                    onClick={() => openChat(friend)}
-                    className={`sidebar-item w-full ${
-                      activeChat?._id === friend._id ? 'active' : ''
-                    }`}
-                  >
-                    <Avatar
-                      src={friend.profilePic}
-                      name={friend.displayName || friend.username}
-                      size="md"
-                      isOnline={friend.isOnline}
-                    />
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-sm text-white truncate">
-                          {friend.displayName || friend.username}
-                        </p>
-                        {unreadCounts[friend._id] > 0 && (
-                          <span className="badge ml-1 flex-shrink-0">
-                            {unreadCounts[friend._id]}
-                          </span>
+                  ) : friends.length === 0 ? (
+                    <div className="text-center py-12 flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-full bg-pink-500/10 flex items-center justify-center mb-4">
+                        <FiUsers size={24} className="text-pink-500/40" />
+                      </div>
+                      <p className="text-gray-400 text-sm font-medium">No conversations yet</p>
+                      <button
+                        onClick={() => setSidebarTab('search')}
+                        className="btn-secondary mt-4 py-2 px-6 text-xs rounded-full"
+                      >
+                        Start Chatting
+                      </button>
+                    </div>
+                  ) : (
+                    friends.map((friend) => (
+                      <motion.button
+                        key={friend._id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        id={`chat-item-${friend._id}`}
+                        onClick={() => openChat(friend)}
+                        className={`sidebar-item w-full group relative ${
+                          activeChat?._id === friend._id 
+                            ? 'bg-pink-500/10 border-pink-500/20' 
+                            : 'hover:bg-white/5'
+                        }`}
+                      >
+                        <Avatar
+                          src={friend.profilePic}
+                          name={friend.displayName || friend.username}
+                          size="md"
+                          isOnline={friend.isOnline}
+                        />
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-sm text-white group-hover:text-pink-400 transition-colors">
+                              {friend.displayName || friend.username}
+                            </p>
+                            {unreadCounts[friend._id] > 0 && (
+                              <span className="badge ml-1 flex-shrink-0 neon-border">
+                                {unreadCounts[friend._id]}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                            {friend.isOnline
+                              ? '💗 Active now'
+                              : `Last seen ${formatLastSeen(friend.lastSeen)}`}
+                          </p>
+                        </div>
+                        {activeChat?._id === friend._id && (
+                          <motion.div
+                            layoutId="active-indicator"
+                            className="absolute left-0 top-3 bottom-3 w-1 bg-pink-500 rounded-r-full"
+                          />
                         )}
-                      </div>
-                      <p className="text-xs text-gray-500 truncate">
-                        {friend.isOnline
-                          ? '💗 Online'
-                          : `Last seen ${formatLastSeen(friend.lastSeen)}`}
-                      </p>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* ── Friends Tab ── */}
-          {sidebarTab === 'friends' && (
-            <div className="space-y-1">
-              {friends.length === 0 ? (
-                <div className="text-center py-12">
-                  <FiUserPlus size={32} className="text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">No friends yet</p>
-                  <button
-                    onClick={() => setSidebarTab('search')}
-                    className="btn-secondary mt-3 py-2 px-4 text-xs"
-                  >
-                    Search & Add
-                  </button>
+                      </motion.button>
+                    ))
+                  )}
                 </div>
-              ) : (
-                friends.map((friend) => (
-                  <div
-                    key={friend._id}
-                    className="sidebar-item"
-                  >
-                    <Avatar
-                      src={friend.profilePic}
-                      name={friend.displayName || friend.username}
-                      size="md"
-                      isOnline={friend.isOnline}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-white truncate">
-                        {friend.displayName || friend.username}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">@{friend.username}</p>
-                    </div>
-                    <button
-                      onClick={() => openChat(friend)}
-                      className="btn-icon w-8 h-8 flex-shrink-0"
-                    >
-                      <FiMessageSquare size={14} />
-                    </button>
-                  </div>
-                ))
               )}
-            </div>
-          )}
 
-          {/* ── Requests Tab ── */}
-          {sidebarTab === 'requests' && <FriendRequests />}
+              {/* ── Friends Tab ── */}
+              {sidebarTab === 'friends' && (
+                <div className="space-y-1">
+                  {friends.length === 0 ? (
+                    <div className="text-center py-12 flex flex-col items-center">
+                      <FiUserPlus size={32} className="text-gray-700 mb-3" />
+                      <p className="text-gray-500 text-sm">Build your circle</p>
+                    </div>
+                  ) : (
+                    friends.map((friend) => (
+                      <div
+                        key={friend._id}
+                        className="sidebar-item hover:bg-white/5"
+                      >
+                        <Avatar
+                          src={friend.profilePic}
+                          name={friend.displayName || friend.username}
+                          size="md"
+                          isOnline={friend.isOnline}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-white truncate">
+                            {friend.displayName || friend.username}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">@{friend.username}</p>
+                        </div>
+                        <button
+                          onClick={() => openChat(friend)}
+                          className="btn-icon w-9 h-9 rounded-full bg-white/5 border-white/10"
+                        >
+                          <FiMessageSquare size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
 
-          {/* ── Search Tab ── */}
-          {sidebarTab === 'search' && <UserSearch />}
+              {/* ── Requests Tab ── */}
+              {sidebarTab === 'requests' && <FriendRequests />}
+
+              {/* ── Search Tab ── */}
+              {sidebarTab === 'search' && <UserSearch />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </aside>
 
@@ -396,27 +411,37 @@ const Dashboard: React.FC = () => {
           />
         ) : (
           /* Empty state */
-          <div className="flex-1 flex flex-col items-center justify-center bg-dark-bg">
-            <div className="text-center animate-fade-in">
-              {/* Gradient orb */}
-              <div className="relative mx-auto w-32 h-32 mb-6">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/20 to-romantic-deep-pink/20 blur-2xl" />
-                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-pink-500/10 to-romantic-deep-pink/10 border border-white/5 flex items-center justify-center">
-                  <FiMessageSquare size={40} className="text-pink-500/60" />
+          <div className="flex-1 flex flex-col items-center justify-center relative">
+            <div className="text-center z-10">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="relative mx-auto w-40 h-40 mb-8"
+              >
+                <div className="absolute inset-0 rounded-full bg-pink-500/20 blur-3xl animate-pulse" />
+                <div className="relative w-40 h-40 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                   <img 
+                      src="/kurakani.png" 
+                      alt="Kurakani" 
+                      className="w-24 h-24 object-contain opacity-40 filter grayscale hover:grayscale-0 transition-all duration-700" 
+                    />
                 </div>
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Your Messages</h2>
-              <p className="text-gray-500 text-sm max-w-xs">
-                Select a friend to start chatting, or search for new people to connect with.
+              </motion.div>
+              <h2 className="text-3xl font-extrabold text-white mb-3 tracking-tight">Welcome home</h2>
+              <p className="text-gray-400 text-base max-w-sm mx-auto font-medium">
+                Pick a conversation from the sidebar and start your journey of connection.
               </p>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setSidebarTab('search')}
-                className="btn-primary mt-6"
+                className="btn-primary mt-8 px-10 py-4 rounded-full neon-border shadow-pink-500/20 shadow-xl"
                 id="start-chat-btn"
               >
-                <FiSearch size={16} />
-                Find People
-              </button>
+                <FiSearch size={18} />
+                Explore People
+              </motion.button>
             </div>
           </div>
         )}

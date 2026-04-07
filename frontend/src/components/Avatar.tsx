@@ -73,8 +73,10 @@ const Avatar: React.FC<AvatarProps> = ({
       )}
       {isOnline && (
         <span
-          className={`absolute bottom-0 right-0 ${dotSizeMap[size]} bg-pink-400 border-gray-950 rounded-full`}
-        />
+          className={`absolute bottom-0 right-0 ${dotSizeMap[size]} bg-pink-500 border-gray-950 rounded-full shadow-[0_0_8px_rgba(255,77,148,0.8)]`}
+        >
+          <span className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-75" />
+        </span>
       )}
     </div>
   );

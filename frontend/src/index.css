@@ -97,11 +97,24 @@ body {
   }
 
   .glass-card {
-    background: linear-gradient(135deg, rgba(10, 10, 10, 0.8) 0%, rgba(15, 5, 20, 0.9) 100%);
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.4) 0%, rgba(15, 5, 20, 0.5) 100%);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 77, 148, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 77, 148, 0.04);
+    border: 1px solid rgba(255, 77, 148, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 77, 148, 0.04);
+  }
+
+  .glass-v2 {
+    background: rgba(10, 10, 10, 0.2);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-header {
+    background: rgba(10, 10, 10, 0.3);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 77, 148, 0.08);
   }
 
   /* ── Buttons ────────────────────────────────────────────── */
@@ -256,6 +269,15 @@ body {
       radial-gradient(ellipse at 80% 20%, rgba(123, 47, 190, 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 80%, rgba(255, 97, 210, 0.04) 0%, transparent 50%),
       #050505;
+  }
+
+  /* ── Neon Glow Text ── */
+  .neon-text {
+    text-shadow: 0 0 10px var(--romantic-pink-glow), 0 0 20px rgba(255, 77, 148, 0.2);
+  }
+
+  .neon-border {
+    box-shadow: 0 0 15px var(--romantic-pink-glow);
   }
 
   /* ── Romantic Landing Page Styles ── */

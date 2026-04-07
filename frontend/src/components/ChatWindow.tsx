@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiArrowLeft, FiPhone, FiVideo, FiSend, FiImage,
   FiMoreVertical, FiInfo, FiChevronDown,
@@ -190,9 +191,42 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-dark-bg">
+    <div className="flex flex-col h-full bg-transparent relative z-10 overflow-hidden">
+      {/* Premium Animated Mesh Background */}
+      <div className="absolute inset-0 -z-10 bg-black/40 overflow-hidden">
+        <motion.div
+          animate={{
+            x: [0, 50, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] blur-[120px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle at center, #ff4d94 0%, transparent 70%)' }}
+        />
+        <motion.div
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 60, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] blur-[140px] rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle at center, #7B2FBE 0%, transparent 70%)' }}
+        />
+        <motion.div
+          animate={{
+            x: [0, 80, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-[20%] left-[10%] w-[50%] h-[50%] blur-[100px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle at center, #06b6d4 0%, transparent 70%)' }}
+        />
+      </div>
+
       {/* ── Chat header ─────────────────────────────────────────────────── */}
-      <div className="glass border-b border-white/5 px-4 py-3 flex items-center gap-3 flex-shrink-0">
+      <div className="glass-header px-6 py-4 flex items-center gap-4 flex-shrink-0 z-20">
         {/* Mobile back */}
         <button
           onClick={onBack}
@@ -203,24 +237,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
         </button>
 
         <Avatar
-          src={activeChat.profilePic}
-          name={activeChat.displayName || activeChat.username}
+          src={activeChat?.profilePic}
+          name={activeChat?.displayName || activeChat?.username || ''}
           size="sm"
-          isOnline={activeChat.isOnline}
+          isOnline={activeChat?.isOnline}
         />
 
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-white text-sm leading-tight truncate">
-            {activeChat.displayName || activeChat.username}
+            {activeChat?.displayName || activeChat?.username || ''}
           </h3>
           <p className="text-xs truncate">
-            {isTyping && typingUserId === activeChat._id ? (
+            {isTyping && typingUserId === activeChat?._id ? (
               <span className="text-pink-400 font-medium">typing...</span>
-            ) : activeChat.isOnline ? (
+            ) : activeChat?.isOnline ? (
               <span className="text-pink-400">Online</span>
             ) : (
               <span className="text-gray-500">
-                Last seen {formatLastSeen(activeChat.lastSeen)}
+                Last seen {activeChat ? formatLastSeen(activeChat.lastSeen) : ''}
               </span>
             )}
           </p>
@@ -251,7 +285,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-1"
+        className="flex-1 overflow-y-auto px-6 py-6 space-y-2 custom-scrollbar"
       >
         {isLoadingMessages ? (
           <div className="flex items-center justify-center h-full">
@@ -268,13 +302,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Avatar
-              src={activeChat.profilePic}
-              name={activeChat.displayName || activeChat.username}
+              src={activeChat?.profilePic}
+              name={activeChat?.displayName || activeChat?.username || ''}
               size="xl"
-              isOnline={activeChat.isOnline}
+              isOnline={activeChat?.isOnline}
             />
             <h4 className="text-white font-bold mt-4">
-              {activeChat.displayName || activeChat.username}
+              {activeChat?.displayName || activeChat?.username || ''}
             </h4>
             <p className="text-gray-500 text-sm mt-1">
               Start a conversation!
@@ -291,13 +325,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
                   <div className="flex-1 h-px bg-white/5" />
                 </div>
                 {group.messages.map((msg) => (
-                  <ChatBubble
+                  <motion.div
                     key={msg._id}
-                    message={msg}
-                    currentUserId={user!._id}
-                    onDelete={handleDeleteMessage}
-                    onImageClick={setImageViewerUrl}
-                  />
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    <ChatBubble
+                      message={msg}
+                      currentUserId={user!._id}
+                      onDelete={handleDeleteMessage}
+                      onImageClick={setImageViewerUrl}
+                    />
+                  </motion.div>
                 ))}
               </React.Fragment>
             ))}
@@ -340,7 +380,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
       )}
 
       {/* ── Message input bar ────────────────────────────────────────────── */}
-      <div className="glass border-t border-white/5 px-4 py-3 flex items-center gap-2 flex-shrink-0">
+      <div className="px-6 pt-2 pb-3 flex-shrink-0 z-20">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="glass-v2 rounded-[24px] px-4 py-2 flex items-center gap-2 border border-white/10 shadow-2xl"
+        >
         {/* Image attach */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -365,8 +410,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${activeChat.displayName || activeChat.username}...`}
-          className="input-field flex-1 py-2.5"
+          placeholder={`Message ${activeChat?.displayName || activeChat?.username || ''}...`}
+          className="input-field flex-1 py-2.5 bg-white/5 border-white/5 focus:bg-white/10"
           disabled={isSending}
           autoComplete="off"
         />
@@ -386,6 +431,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onStartCall }) => {
         >
           <FiSend size={16} />
         </button>
+        </motion.div>
       </div>
 
       {/* Image viewer modal */}
