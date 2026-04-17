@@ -40,6 +40,7 @@ class SocketService {
 
   // ── Messaging ───────────────────────────────────────────────
   sendMessage(message: Record<string, unknown>) {
+    console.log('📤 Socket emitting message:send:', message);
     this.socket?.emit('message:send', message);
   }
 
@@ -49,6 +50,15 @@ class SocketService {
 
   offMessage() {
     this.socket?.off('message:receive');
+  }
+
+  /** Listen for message:error events (e.g., friendship gate rejection) */
+  onMessageError(callback: (data: { error: string; receiverId: string }) => void) {
+    this.socket?.on('message:error', callback);
+  }
+
+  offMessageError() {
+    this.socket?.off('message:error');
   }
 
   // ── Typing ──────────────────────────────────────────────────
@@ -78,8 +88,22 @@ class SocketService {
     this.socket?.emit('message:read', { senderId, receiverId });
   }
 
+  /** Emit mark-read event to server (triggers DB update + read-ack) */
+  emitMarkRead(senderId: string, receiverId: string) {
+    this.socket?.emit('message:mark-read', { senderId, receiverId });
+  }
+
   onRead(callback: (data: { receiverId: string }) => void) {
     this.socket?.on('message:read', callback);
+  }
+
+  /** Listen for read-ack events (sender learns their messages were read) */
+  onReadAck(callback: (data: { readBy: string }) => void) {
+    this.socket?.on('message:read-ack', callback);
+  }
+
+  offReadAck() {
+    this.socket?.off('message:read-ack');
   }
 
   // ── Online status ───────────────────────────────────────────

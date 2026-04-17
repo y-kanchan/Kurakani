@@ -59,9 +59,29 @@ app.get('/api/health', (req, res) => {
 // ─────────────────────────────────────────────────────────────
 
 const User = require('./models/User');
+const FriendRequest = require('./models/FriendRequest');
+const Message = require('./models/Message');
 
 // Map: userId -> socketId
 const onlineUsers = new Map();
+
+/**
+ * @desc Check if two users have an accepted friendship
+ * @param {string} userA
+ * @param {string} userB
+ * @returns {Promise<boolean>}
+ */
+async function checkFriendship(userA, userB) {
+  if (userA === userB) return true; // self-message always allowed
+  const friendship = await FriendRequest.findOne({
+    $or: [
+      { sender: userA, receiver: userB },
+      { sender: userB, receiver: userA },
+    ],
+    status: 'accepted',
+  });
+  return !!friendship;
+}
 
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);
@@ -71,6 +91,9 @@ io.on('connection', (socket) => {
     if (!userId) return;
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
+
+    console.log(`✅ User ${userId} joined onlineUsers with socket ${socket.id}`);
+    console.log(`📊 Current Online Users (${onlineUsers.size}):`, Array.from(onlineUsers.keys()));
 
     try {
       await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() });
@@ -82,11 +105,39 @@ io.on('connection', (socket) => {
   });
 
   // ── Send message via socket (real-time delivery) ──────────
-  socket.on('message:send', (message) => {
-    const receiverSocketId = onlineUsers.get(message.receiver?._id || message.receiver);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('message:receive', message);
+  socket.on('message:send', async (message) => {
+    const receiverId = message.receiver?._id || message.receiver;
+    const senderId = message.sender?._id || message.sender;
+
+    console.log(`📩 Server received message:send | From: ${senderId} | To: ${receiverId}`);
+
+    // Friendship check (skip for self-messages)
+    const isSelf = senderId === receiverId;
+    if (!isSelf) {
+      const areFriends = await checkFriendship(senderId, receiverId);
+      if (!areFriends) {
+        console.log(`🚫 Blocked message from ${senderId} to ${receiverId} — not friends`);
+        socket.emit('message:error', {
+          error: 'You must be friends to message this user.',
+          receiverId,
+        });
+        return;
+      }
     }
+
+    if (isSelf) {
+      // Self-message: echo back to sender's own socket
+      socket.emit('message:receive', message);
+    } else {
+      const receiverSocketId = onlineUsers.get(receiverId);
+      if (receiverSocketId) {
+        console.log(`🚀 Routing message to socket: ${receiverSocketId}`);
+        io.to(receiverSocketId).emit('message:receive', message);
+      } else {
+        console.log(`⚠️ Receiver ${receiverId} is NOT in onlineUsers map. Delivery skipped.`);
+      }
+    }
+
     // Echo back to sender for multi-device sync
     socket.emit('message:sent', message);
   });
@@ -111,6 +162,25 @@ io.on('connection', (socket) => {
     const senderSocketId = onlineUsers.get(senderId);
     if (senderSocketId) {
       io.to(senderSocketId).emit('message:read', { receiverId });
+    }
+  });
+
+  // ── Mark messages as read (with DB update) ────────────────
+  socket.on('message:mark-read', async ({ senderId, receiverId }) => {
+    try {
+      // Mark all unread messages from senderId to receiverId as read
+      await Message.updateMany(
+        { sender: senderId, receiver: receiverId, read: false },
+        { read: true, readAt: new Date() }
+      );
+
+      // Notify the original sender that their messages were read (read receipt)
+      const senderSocketId = onlineUsers.get(senderId);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit('message:read-ack', { readBy: receiverId });
+      }
+    } catch (e) {
+      console.error('message:mark-read error:', e);
     }
   });
 

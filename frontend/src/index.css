@@ -254,6 +254,21 @@ body {
     color: #fff;
   }
 
+  .badge-amber {
+    @apply inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-bold;
+    background: #f59e0b;
+    color: #000;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  }
+
+  .badge-red-dot {
+    @apply absolute w-2.5 h-2.5 rounded-full;
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    top: 0;
+    right: 0;
+  }
+
   /* ── Gradient Text ──────────────────────────────────────── */
   .gradient-text {
     background: linear-gradient(135deg, #ff4d94 0%, #7B2FBE 100%);

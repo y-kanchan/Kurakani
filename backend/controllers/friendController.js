@@ -176,4 +176,58 @@ const removeFriend = async (req, res) => {
   }
 };
 
-module.exports = { sendRequest, getRequests, acceptRequest, rejectRequest, getFriends, removeFriend };
+/**
+ * @desc    Get friendship status between current user and a target user
+ * @route   GET /api/friends/status/:userId
+ * @access  Private
+ * @returns {{ status: 'accepted' | 'pending' | 'incoming' | 'none' }}
+ */
+const getFriendshipStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Self check
+    if (userId === req.user._id.toString()) {
+      return res.json({ status: 'self' });
+    }
+
+    // Check if already friends via User.friends array
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser.friends.includes(userId)) {
+      return res.json({ status: 'accepted' });
+    }
+
+    // Check for pending friend requests
+    const request = await FriendRequest.findOne({
+      $or: [
+        { sender: req.user._id, receiver: userId },
+        { sender: userId, receiver: req.user._id },
+      ],
+    });
+
+    if (!request) {
+      return res.json({ status: 'none' });
+    }
+
+    if (request.status === 'accepted') {
+      return res.json({ status: 'accepted' });
+    }
+
+    if (request.status === 'pending') {
+      // Determine direction
+      if (request.sender.toString() === req.user._id.toString()) {
+        return res.json({ status: 'pending', requestId: request._id }); // I sent it
+      } else {
+        return res.json({ status: 'incoming', requestId: request._id }); // They sent it
+      }
+    }
+
+    // Rejected — treat as none so user can re-send
+    return res.json({ status: 'none' });
+  } catch (error) {
+    console.error('Get friendship status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { sendRequest, getRequests, acceptRequest, rejectRequest, getFriends, removeFriend, getFriendshipStatus };

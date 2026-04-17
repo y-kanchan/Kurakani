@@ -5,11 +5,14 @@ const path = require('path');
 const {
   sendMessage,
   getConversation,
+  getSelfMessages,
   markRead,
+  markReadBulk,
   deleteMessage,
   getUnreadCounts,
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/auth');
+const { requireFriendship } = require('../middleware/requireFriendship');
 
 // Multer for voice and image files
 const storage = multer.diskStorage({
@@ -49,8 +52,13 @@ const uploadFields = upload.fields([
   { name: 'image', maxCount: 1 },
 ]);
 
+// Static routes (must come before parameterized routes)
 router.get('/unread', protect, getUnreadCounts);
-router.post('/', protect, uploadFields, sendMessage);
+router.get('/self', protect, getSelfMessages);
+router.post('/mark-read', protect, markReadBulk);
+
+// Message CRUD
+router.post('/', protect, uploadFields, requireFriendship, sendMessage);
 router.get('/:userId', protect, getConversation);
 router.put('/read/:senderId', protect, markRead);
 router.delete('/:messageId', protect, deleteMessage);

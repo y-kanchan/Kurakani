@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FiSearch, FiUserPlus, FiCheck, FiMessageSquare } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiCheck, FiMessageSquare, FiClock } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { userService } from '../services/userService';
 import { friendService } from '../services/friendService';
@@ -11,13 +11,14 @@ import type { User } from '../stores/useAuthStore';
 
 const UserSearch: React.FC = () => {
   const { user } = useAuthStore();
-  const { friends, sentRequests, setSentRequests } = useFriendStore();
+  const { friends, sentRequests, receivedRequests, setSentRequests } = useFriendStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(
     new Set(sentRequests.map((r) => r.receiver._id))
   );
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
@@ -34,6 +35,7 @@ const UserSearch: React.FC = () => {
   }, []);
 
   const handleSendRequest = async (targetUser: User) => {
+    setProcessingId(targetUser._id);
     try {
       const data = await friendService.sendRequest(targetUser._id);
       setSentIds((prev) => new Set([...prev, targetUser._id]));
@@ -42,11 +44,88 @@ const UserSearch: React.FC = () => {
       toast.success(`Friend request sent to ${targetUser.displayName || targetUser.username}!`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Could not send request');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleAcceptFromSearch = async (targetUser: User) => {
+    // Find the incoming request from this user
+    const incomingReq = receivedRequests.find(
+      (r) => r.sender._id === targetUser._id
+    );
+    if (!incomingReq) return;
+
+    setProcessingId(targetUser._id);
+    try {
+      await friendService.acceptRequest(incomingReq._id);
+      const { addFriend, removeRequest } = useFriendStore.getState();
+      addFriend(targetUser);
+      removeRequest(incomingReq._id);
+      socketService.emitFriendAccepted(targetUser._id, user as any);
+      toast.success(`You and ${targetUser.displayName || targetUser.username} are now friends! 🎉`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to accept request');
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const isFriend = (id: string) => friends.some((f) => f._id === id);
   const hasSentRequest = (id: string) => sentIds.has(id);
+  const hasIncomingRequest = (id: string) =>
+    receivedRequests.some((r) => r.sender._id === id);
+
+  /** Get relationship label + action for a searched user */
+  const getRelationshipUI = (u: User) => {
+    if (u._id === user?._id) {
+      return (
+        <span className="text-xs text-gray-600 font-medium italic">You</span>
+      );
+    }
+
+    if (isFriend(u._id)) {
+      return (
+        <span className="flex items-center gap-1 text-xs text-pink-400 font-medium">
+          <FiCheck size={13} /> Friends
+        </span>
+      );
+    }
+
+    if (hasIncomingRequest(u._id)) {
+      return (
+        <button
+          id={`accept-search-${u._id}`}
+          onClick={() => handleAcceptFromSearch(u)}
+          disabled={processingId === u._id}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+        >
+          <FiCheck size={12} />
+          Accept
+        </button>
+      );
+    }
+
+    if (hasSentRequest(u._id)) {
+      return (
+        <span className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+          <FiClock size={12} /> Sent
+        </span>
+      );
+    }
+
+    return (
+      <button
+        id={`add-friend-${u._id}`}
+        onClick={() => handleSendRequest(u)}
+        disabled={processingId === u._id}
+        className="btn-icon w-8 h-8 flex-shrink-0 hover:bg-pink-500/20 hover:text-pink-400 hover:border-pink-500/30"
+        title="Send friend request"
+      >
+        <FiUserPlus size={15} />
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -91,22 +170,7 @@ const UserSearch: React.FC = () => {
             </p>
             <p className="text-xs text-gray-500">@{u.username}</p>
           </div>
-          {isFriend(u._id) ? (
-            <span className="flex items-center gap-1 text-xs text-pink-400 font-medium">
-              <FiCheck size={13} /> Friends
-            </span>
-          ) : hasSentRequest(u._id) ? (
-            <span className="text-xs text-gray-500 font-medium">Sent</span>
-          ) : (
-            <button
-              id={`add-friend-${u._id}`}
-              onClick={() => handleSendRequest(u)}
-              className="btn-icon w-8 h-8 flex-shrink-0 hover:bg-pink-500/20 hover:text-pink-400 hover:border-pink-500/30"
-              title="Send friend request"
-            >
-              <FiUserPlus size={15} />
-            </button>
-          )}
+          {getRelationshipUI(u)}
         </div>
       ))}
 

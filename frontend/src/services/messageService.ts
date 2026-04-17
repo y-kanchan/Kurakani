@@ -13,8 +13,20 @@ export const messageService = {
     return res.data;
   },
 
+  /** Get self-message thread (Notes to Self) */
+  getSelfMessages: async (page = 1) => {
+    const res = await api.get(`/messages/self?page=${page}&limit=50`);
+    return res.data;
+  },
+
   markRead: async (senderId: string) => {
     const res = await api.put(`/messages/read/${senderId}`);
+    return res.data;
+  },
+
+  /** Mark all messages from conversationUserId as read (POST body) */
+  markReadBulk: async (conversationUserId: string) => {
+    const res = await api.post('/messages/mark-read', { conversationUserId });
     return res.data;
   },
 

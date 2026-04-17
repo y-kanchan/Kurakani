@@ -20,8 +20,8 @@ interface ChatState {
   messages: Message[];
   isTyping: boolean;
   typingUserId: string | null;
-  unreadCounts: Record<string, number>;
   isLoadingMessages: boolean;
+  isSelfChat: boolean;
 
   setActiveChat: (user: User | null) => void;
   setMessages: (messages: Message[]) => void;
@@ -29,9 +29,6 @@ interface ChatState {
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   markMessagesRead: (senderId: string) => void;
   setTyping: (isTyping: boolean, userId?: string) => void;
-  setUnreadCount: (userId: string, count: number) => void;
-  incrementUnread: (userId: string) => void;
-  clearUnread: (userId: string) => void;
   setLoadingMessages: (loading: boolean) => void;
 }
 
@@ -40,10 +37,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isTyping: false,
   typingUserId: null,
-  unreadCounts: {},
   isLoadingMessages: false,
+  isSelfChat: false,
 
-  setActiveChat: (user) => set({ activeChat: user, messages: [] }),
+  setActiveChat: (user) =>
+    set({
+      activeChat: user,
+      messages: [],
+      isSelfChat: false, // Will be set by Dashboard when opening self-chat
+    }),
 
   setMessages: (messages) => set({ messages }),
 
@@ -70,24 +72,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setTyping: (isTyping, userId) =>
     set({ isTyping, typingUserId: userId || null }),
-
-  setUnreadCount: (userId, count) =>
-    set((state) => ({
-      unreadCounts: { ...state.unreadCounts, [userId]: count },
-    })),
-
-  incrementUnread: (userId) =>
-    set((state) => ({
-      unreadCounts: {
-        ...state.unreadCounts,
-        [userId]: (state.unreadCounts[userId] || 0) + 1,
-      },
-    })),
-
-  clearUnread: (userId) =>
-    set((state) => ({
-      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
-    })),
 
   setLoadingMessages: (loading) => set({ isLoadingMessages: loading }),
 }));

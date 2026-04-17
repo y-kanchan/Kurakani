@@ -8,6 +8,7 @@ import { format, isToday, isYesterday } from '../utils/dateUtils';
 interface ChatBubbleProps {
   message: Message;
   currentUserId: string;
+  isSelfChat?: boolean;
   onDelete?: (messageId: string) => void;
   onImageClick?: (url: string) => void;
 }
@@ -15,11 +16,13 @@ interface ChatBubbleProps {
 const ChatBubble: React.FC<ChatBubbleProps> = ({
   message,
   currentUserId,
+  isSelfChat = false,
   onDelete,
   onImageClick,
 }) => {
   const senderId = typeof message.sender === 'string' ? message.sender : (message.sender as User)._id;
-  const isSent = senderId === currentUserId;
+  // In self-chat, all messages are from the user — always show as sent (right side)
+  const isSent = isSelfChat ? true : senderId === currentUserId;
 
   const timeStr = format(new Date(message.createdAt));
 
@@ -74,7 +77,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           <span className={`text-[10px] ${isSent ? 'text-black/50' : 'text-gray-500'}`}>
             {timeStr}
           </span>
-          {isSent && (
+          {isSent && !isSelfChat && (
             message.read
               ? <FiCheckCircle size={11} className="text-black/60" />
               : <FiCheck size={11} className="text-black/40" />

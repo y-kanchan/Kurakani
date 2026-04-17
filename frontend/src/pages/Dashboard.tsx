@@ -4,11 +4,13 @@ import { toast } from 'react-toastify';
 import {
   FiSearch, FiUsers, FiUserPlus, FiLogOut, FiSettings,
   FiMessageSquare, FiX, FiBell, FiCheckCircle, FiCheck,
+  FiBookmark,
 } from 'react-icons/fi';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useChatStore } from '../stores/useChatStore';
 import { useFriendStore } from '../stores/useFriendStore';
 import { useCallStore } from '../stores/useCallStore';
+import { useNotificationStore } from '../stores/useNotificationStore';
 import { friendService } from '../services/friendService';
 import { messageService } from '../services/messageService';
 import { authService } from '../services/authService';
@@ -30,10 +32,11 @@ const Dashboard: React.FC = () => {
   const { userId: paramUserId } = useParams();
   const navigate = useNavigate();
   const { user, logout, updateUser, updateFriendStatus } = useAuthStore();
-  const { activeChat, setActiveChat, unreadCounts, incrementUnread, clearUnread, addMessage } = useChatStore();
+  const { activeChat, setActiveChat, addMessage } = useChatStore();
   const { friends, setFriends, receivedRequests, setReceivedRequests, setSentRequests,
     addReceivedRequest, updateFriendStatus: updateFriendStatusStore, addFriend } = useFriendStore();
   const { initiateCall } = useCallStore();
+  const { unreadCounts, totalUnread, fetchUnreadCounts, incrementUnread, clearUnread } = useNotificationStore();
 
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('chats');
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
@@ -43,10 +46,37 @@ const Dashboard: React.FC = () => {
   // Notification sound
   const notificationAudio = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'));
 
+  // ─── Browser Tab Title Notification ────────────────────────────────────────
+  useEffect(() => {
+    const originalTitle = 'Kurakani';
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) ${originalTitle}`;
+    } else {
+      document.title = originalTitle;
+    }
+  }, [totalUnread]);
+
+  // ─── Request Notification Permission ──────────────────────────────────────
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // ─── Fetch unread counts on load ──────────────────────────────────────────
+  useEffect(() => {
+    fetchUnreadCounts();
+  }, []);
 
   // ─── Init socket ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
+
+    console.log('👤 Dashboard Identity:', {
+      _id: user._id,
+      displayName: user.displayName,
+      username: user.username
+    });
 
     const socket = socketService.connect(user._id);
 
@@ -58,17 +88,80 @@ const Dashboard: React.FC = () => {
 
     // Incoming messages
     socketService.onMessage((msg: any) => {
+      console.log('📩 Socket Message Received:', msg);
+      
       const senderId = msg.sender?._id || msg.sender;
       addMessage(msg);
 
       // Play notification sound
-      notificationAudio.current.play().catch(e => console.log('Audio play failed:', e));
+      notificationAudio.current.play().catch(e => console.log('🔊 Audio play failed:', e));
 
-      if (!activeChat || activeChat._id !== senderId) {
+      // Use getState() to get the most FRESH version of activeChat and other state
+      const currentChatState = useChatStore.getState();
+      const currentActiveChat = currentChatState.activeChat;
+
+      console.log('🔍 Notification Logic:', {
+        senderId,
+        currentActiveChatId: currentActiveChat?._id,
+        shouldNotify: !currentActiveChat || currentActiveChat._id !== senderId
+      });
+
+      if (!currentActiveChat || currentActiveChat._id !== senderId) {
         incrementUnread(senderId);
-        toast.info(`New message from ${msg.sender?.displayName || 'someone'}`, {
+        
+        const senderName = msg.sender?.displayName || msg.sender?.username || 'someone';
+
+        // Premium Toast - clickable
+        toast.info(`New message from ${senderName}`, {
           toastId: `msg-${senderId}`,
+          onClick: () => {
+             console.log('🖱️ Toast Clicked - opening chat with:', senderId);
+             if (msg.sender && typeof msg.sender !== 'string') {
+               openChat(msg.sender);
+             } else {
+               // If msg.sender was just an ID, find the friend in the list using fresh state
+               const friend = useFriendStore.getState().friends.find(f => f._id === senderId);
+               if (friend) openChat(friend);
+             }
+          },
         });
+
+        // Native Browser Notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          console.log('🖥️ Triggering Native Notification');
+          const notification = new Notification(`New message from ${senderName}`, {
+            body: msg.text || (msg.imageUrl ? '📷 Sent an image' : (msg.voiceUrl ? '🎤 Sent a voice message' : '')),
+            icon: msg.sender?.profilePic || '/kurakani.png',
+          });
+          notification.onclick = () => {
+             window.focus();
+             if (msg.sender && typeof msg.sender !== 'string') {
+               openChat(msg.sender);
+             } else {
+               const friend = useFriendStore.getState().friends.find(f => f._id === senderId);
+               if (friend) openChat(friend);
+             }
+             notification.close();
+          };
+        } else {
+          console.warn('⚠️ Native Notifications skipped:', {
+            hasNotificationAPI: 'Notification' in window,
+            permission: 'Notification' in window ? Notification.permission : 'N/A'
+          });
+        }
+      }
+    });
+
+    // Message errors (friendship gate)
+    socketService.onMessageError(({ error }) => {
+      toast.error(error);
+    });
+
+    // Read acknowledgements
+    socketService.onReadAck(({ readBy }) => {
+      const currentChatState = useChatStore.getState();
+      if (currentChatState.activeChat?._id === readBy) {
+        currentChatState.markMessagesRead(user._id);
       }
     });
 
@@ -86,6 +179,8 @@ const Dashboard: React.FC = () => {
 
     return () => {
       socketService.offMessage();
+      socketService.offMessageError();
+      socketService.offReadAck();
       socketService.offUserStatus();
       socketService.disconnect();
     };
@@ -113,11 +208,18 @@ const Dashboard: React.FC = () => {
 
   // ─── Auto-open chat from URL param ───────────────────────────────────────
   useEffect(() => {
-    if (paramUserId && friends.length > 0) {
-      const friend = friends.find((f) => f._id === paramUserId);
-      if (friend) {
-        setActiveChat(friend);
-        setMobileShowChat(true);
+    if (paramUserId && user) {
+      // Check if it's a self-chat
+      if (paramUserId === user._id) {
+        openSelfChat();
+        return;
+      }
+      if (friends.length > 0) {
+        const friend = friends.find((f) => f._id === paramUserId);
+        if (friend) {
+          setActiveChat(friend);
+          setMobileShowChat(true);
+        }
       }
     }
   }, [paramUserId, friends]);
@@ -135,8 +237,19 @@ const Dashboard: React.FC = () => {
   // ─── Open a chat ─────────────────────────────────────────────────────────
   const openChat = (friend: User) => {
     setActiveChat(friend);
+    useChatStore.setState({ isSelfChat: false });
     clearUnread(friend._id);
     navigate(`/dashboard/${friend._id}`);
+    setMobileShowChat(true);
+  };
+
+  // ─── Open self-chat (Notes to Self) ───────────────────────────────────────
+  const openSelfChat = () => {
+    if (!user) return;
+    setActiveChat(user);
+    useChatStore.setState({ isSelfChat: true });
+    clearUnread(user._id);
+    navigate(`/dashboard/${user._id}`);
     setMobileShowChat(true);
   };
 
@@ -169,8 +282,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
   const pendingRequestCount = receivedRequests.length;
+  const selfUnread = unreadCounts[user?._id || ''] || 0;
 
   return (
     <div className="flex h-screen overflow-hidden font-sans">
@@ -193,6 +306,10 @@ const Dashboard: React.FC = () => {
                 size="md"
                 isOnline
               />
+              {/* Red dot when totalUnread > 0 */}
+              {totalUnread > 0 && (
+                <span className="badge-red-dot" />
+              )}
             </button>
             <div>
               <h2 className="font-bold text-white text-sm leading-tight">
@@ -280,6 +397,55 @@ const Dashboard: React.FC = () => {
               {/* ── Chats Tab ── */}
               {sidebarTab === 'chats' && (
                 <div className="space-y-1">
+                  {/* ── Notes to Self (always first) ── */}
+                  {user && (
+                    <motion.button
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      id="self-chat-item"
+                      onClick={openSelfChat}
+                      className={`sidebar-item w-full group relative ${
+                        activeChat?._id === user._id
+                          ? 'bg-amber-500/10 border-amber-500/20'
+                          : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="relative">
+                        <Avatar
+                          src={user.profilePic}
+                          name={user.displayName || user.username}
+                          size="md"
+                        />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                          <FiBookmark size={10} className="text-amber-400" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm text-white group-hover:text-amber-400 transition-colors">
+                            Notes to Self
+                          </p>
+                          {selfUnread > 0 && (
+                            <span className="badge-amber ml-1 flex-shrink-0">
+                              {selfUnread > 99 ? '99+' : selfUnread}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                          📌 Save notes, links & reminders
+                        </p>
+                      </div>
+                      {activeChat?._id === user._id && (
+                        <motion.div
+                          layoutId="active-indicator"
+                          className="absolute left-0 top-3 bottom-3 w-1 bg-amber-500 rounded-r-full"
+                        />
+                      )}
+                    </motion.button>
+                  )}
+
+                  {/* ── Friend conversations ── */}
                   {isLoadingFriends ? (
                     <div className="space-y-2 pt-2">
                       {[...Array(5)].map((_, i) => (
@@ -309,7 +475,7 @@ const Dashboard: React.FC = () => {
                         id={`chat-item-${friend._id}`}
                         onClick={() => openChat(friend)}
                         className={`sidebar-item w-full group relative ${
-                          activeChat?._id === friend._id 
+                          activeChat?._id === friend._id && !useChatStore.getState().isSelfChat
                             ? 'bg-pink-500/10 border-pink-500/20' 
                             : 'hover:bg-white/5'
                         }`}
@@ -325,9 +491,9 @@ const Dashboard: React.FC = () => {
                             <p className="font-semibold text-sm text-white group-hover:text-pink-400 transition-colors">
                               {friend.displayName || friend.username}
                             </p>
-                            {unreadCounts[friend._id] > 0 && (
+                            {(unreadCounts[friend._id] || 0) > 0 && (
                               <span className="badge ml-1 flex-shrink-0 neon-border">
-                                {unreadCounts[friend._id]}
+                                {unreadCounts[friend._id] > 99 ? '99+' : unreadCounts[friend._id]}
                               </span>
                             )}
                           </div>
@@ -337,7 +503,7 @@ const Dashboard: React.FC = () => {
                               : `Last seen ${formatLastSeen(friend.lastSeen)}`}
                           </p>
                         </div>
-                        {activeChat?._id === friend._id && (
+                        {activeChat?._id === friend._id && !useChatStore.getState().isSelfChat && (
                           <motion.div
                             layoutId="active-indicator"
                             className="absolute left-0 top-3 bottom-3 w-1 bg-pink-500 rounded-r-full"

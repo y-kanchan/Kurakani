@@ -30,4 +30,10 @@ export const friendService = {
     const res = await api.delete(`/friends/${friendId}`);
     return res.data;
   },
+
+  /** Get friendship status between current user and a target user */
+  getFriendshipStatus: async (userId: string) => {
+    const res = await api.get(`/friends/status/${userId}`);
+    return res.data;
+  },
 };
