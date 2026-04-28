@@ -7,10 +7,17 @@ const messageSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    // For DMs — required when group is absent
     receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
+    },
+    // For group messages — required when receiver is absent
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+      default: null,
     },
     text: {
       type: String,
@@ -40,10 +47,13 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for efficient conversation queries
+// Index for efficient DM conversation queries
 messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
 
 // Index for efficient unread count aggregation
 messageSchema.index({ receiver: 1, read: 1 });
+
+// Index for group message queries
+messageSchema.index({ group: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

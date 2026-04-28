@@ -3,22 +3,25 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   FiSearch, FiUsers, FiUserPlus, FiLogOut, FiSettings,
-  FiMessageSquare, FiX, FiBell, FiCheckCircle, FiCheck,
-  FiBookmark,
+  FiMessageSquare, FiBell, FiBookmark, FiPlus,
 } from 'react-icons/fi';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useChatStore } from '../stores/useChatStore';
 import { useFriendStore } from '../stores/useFriendStore';
+import { useGroupStore } from '../stores/useGroupStore';
 import { useCallStore } from '../stores/useCallStore';
 import { useNotificationStore } from '../stores/useNotificationStore';
 import { friendService } from '../services/friendService';
 import { messageService } from '../services/messageService';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
+import { groupService } from '../services/groupService';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
 import Avatar from '../components/Avatar';
 import ChatWindow from '../components/ChatWindow';
+import GroupChatWindow from '../components/GroupChatWindow';
+import CreateGroupModal from '../components/CreateGroupModal';
 import UserSearch from '../components/UserSearch';
 import FriendRequests from '../components/FriendRequests';
 import { formatLastSeen } from '../utils/dateUtils';
@@ -26,7 +29,7 @@ import type { User } from '../stores/useAuthStore';
 import FluidBackground from '../components/FluidBackground';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type SidebarTab = 'chats' | 'friends' | 'requests' | 'search';
+type SidebarTab = 'chats' | 'friends' | 'requests' | 'search' | 'groups';
 
 const Dashboard: React.FC = () => {
   const { userId: paramUserId } = useParams();
@@ -35,6 +38,7 @@ const Dashboard: React.FC = () => {
   const { activeChat, setActiveChat, addMessage } = useChatStore();
   const { friends, setFriends, receivedRequests, setReceivedRequests, setSentRequests,
     addReceivedRequest, updateFriendStatus: updateFriendStatusStore, addFriend } = useFriendStore();
+  const { groups, setGroups, addGroup, addGroupMessage, activeGroup, setActiveGroup, removeGroup } = useGroupStore();
   const { initiateCall } = useCallStore();
   const { unreadCounts, totalUnread, fetchUnreadCounts, incrementUnread, clearUnread } = useNotificationStore();
 
@@ -42,6 +46,7 @@ const Dashboard: React.FC = () => {
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
   // Notification sound
   const notificationAudio = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'));
@@ -177,14 +182,42 @@ const Dashboard: React.FC = () => {
       toast.success(`${friend.displayName || friend.username} accepted your friend request!`);
     });
 
+    // Group socket events
+    socketService.onGroupMessage((msg: any) => {
+      addGroupMessage(msg);
+      const groupId = msg.group?._id || msg.group;
+      const currentActive = useGroupStore.getState().activeGroup;
+      if (!currentActive || currentActive._id !== groupId) {
+        const senderName = msg.sender?.displayName || msg.sender?.username || 'Someone';
+        toast.info(`${senderName} in a group`, { toastId: `grp-${groupId}` });
+      }
+    });
+
+    socketService.onGroupAdded(({ groupId }) => {
+      socketService.joinGroupRoom(groupId);
+      groupService.getGroup(groupId).then((g) => addGroup(g)).catch(() => {});
+      toast.info('You were added to a group!');
+    });
+
+    socketService.onGroupRemoved(({ groupId }) => {
+      removeGroup(groupId);
+      toast.info('You were removed from a group');
+    });
+
     return () => {
       socketService.offMessage();
       socketService.offMessageError();
       socketService.offReadAck();
       socketService.offUserStatus();
+      socketService.offGroupEvents();
       socketService.disconnect();
     };
   }, [user?._id]);
+
+  // ─── Load groups ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    groupService.getMyGroups().then((data) => setGroups(data)).catch(() => {});
+  }, []);
 
   // ─── Load friends + requests ──────────────────────────────────────────────
   useEffect(() => {
@@ -250,6 +283,14 @@ const Dashboard: React.FC = () => {
     useChatStore.setState({ isSelfChat: true });
     clearUnread(user._id);
     navigate(`/dashboard/${user._id}`);
+    setMobileShowChat(true);
+  };
+
+  // ─── Open group chat ──────────────────────────────────────────────────────
+  const openGroupChat = (group: any) => {
+    setActiveGroup(group);
+    setActiveChat(null);
+    useChatStore.setState({ isSelfChat: false });
     setMobileShowChat(true);
   };
 
@@ -358,7 +399,8 @@ const Dashboard: React.FC = () => {
           <div className="flex gap-1 p-1 rounded-xl bg-white/3 border border-white/5">
             {([
               { key: 'chats', icon: <FiMessageSquare size={15} />, label: 'Chats', badge: totalUnread },
-              { key: 'friends', icon: <FiUsers size={15} />, label: 'Friends' },
+              { key: 'groups', icon: <FiUsers size={15} />, label: 'Groups', badge: groups.length > 0 ? undefined : undefined },
+              { key: 'friends', icon: <FiUserPlus size={15} />, label: 'Friends' },
               { key: 'requests', icon: <FiBell size={15} />, label: 'Requests', badge: pendingRequestCount },
               { key: 'search', icon: <FiSearch size={15} />, label: 'Search' },
             ] as { key: SidebarTab; icon: React.ReactNode; label: string; badge?: number }[]).map((tab) => (
@@ -553,6 +595,94 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
 
+              {/* ── Groups Tab ── */}
+              {sidebarTab === 'groups' && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setShowCreateGroup(true)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-pink-500/8 border border-dashed border-pink-500/20 text-pink-300 text-sm font-medium hover:bg-pink-500/15 transition-colors mb-2"
+                    id="create-group-btn"
+                  >
+                    <FiPlus size={16} /> New Group
+                  </button>
+                  {groups.length === 0 ? (
+                    <div className="text-center py-10 flex flex-col items-center">
+                      <FiUsers size={28} className="text-gray-700 mb-3" />
+                      <p className="text-gray-500 text-sm">No groups yet</p>
+                      <p className="text-gray-600 text-xs mt-1">Create one to get started</p>
+                    </div>
+                  ) : (
+                    groups.map((group) => (
+                      <motion.button
+                        key={group._id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        onClick={() => openGroupChat(group)}
+                        className={`sidebar-item w-full group relative ${
+                          activeGroup?._id === group._id
+                            ? 'bg-pink-500/10 border-pink-500/20'
+                            : 'hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="relative w-11 h-11 flex-shrink-0">
+                          {group.avatar ? (
+                            <img
+                              src={group.avatar}
+                              alt={group.name}
+                              className="w-full h-full rounded-xl object-cover border border-white/10"
+                            />
+                          ) : (
+                            <div className="w-full h-full relative">
+                              {/* Stacked Avatars for groups without images */}
+                              {group.members.slice(0, 3).map((member, idx) => (
+                                <div
+                                  key={member._id}
+                                  className="absolute rounded-lg overflow-hidden border border-[#0d0d0d] shadow-sm transition-transform group-hover:scale-110"
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    zIndex: 3 - idx,
+                                    left: `${idx * 8}px`,
+                                    top: `${idx * 8}px`,
+                                  }}
+                                >
+                                  <Avatar
+                                    src={member.profilePic}
+                                    name={member.displayName || member.username}
+                                    size="xs"
+                                  />
+                                </div>
+                              ))}
+                              {group.members.length === 0 && (
+                                <div className="w-full h-full rounded-xl bg-gradient-to-br from-pink-500/30 to-purple-600/30 flex items-center justify-center">
+                                  <FiUsers size={16} className="text-pink-400/60" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="font-semibold text-sm text-white group-hover:text-pink-400 transition-colors truncate">
+                            {group.name}
+                          </p>
+                          <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                            {group.lastMessage
+                              ? `${group.lastMessage.sender?.displayName || group.lastMessage.sender?.username || 'Someone'}: ${group.lastMessage.text || (group.lastMessage.imageUrl ? '📷 Image' : '🎤 Voice')}`
+                              : `${group.members.length} members`}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-gray-600 flex-shrink-0">
+                          {group.members.filter(m => m.isOnline).length > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+                          )}
+                        </span>
+                      </motion.button>
+                    ))
+                  )}
+                </div>
+              )}
+
               {/* ── Requests Tab ── */}
               {sidebarTab === 'requests' && <FriendRequests />}
 
@@ -563,11 +693,27 @@ const Dashboard: React.FC = () => {
         </div>
       </aside>
 
+      {/* ── Create Group Modal ──────────────────────────────────────────────── */}
+      {showCreateGroup && (
+        <CreateGroupModal
+          onClose={() => setShowCreateGroup(false)}
+          onCreated={(group) => { openGroupChat(group); setSidebarTab('groups'); }}
+        />
+      )}
+
       {/* ── Main Chat Area ───────────────────────────────────────────────────── */}
       <main
         className={`${!mobileShowChat ? 'hidden' : 'flex'} md:flex flex-1 flex-col min-w-0`}
       >
-        {activeChat ? (
+        {activeGroup ? (
+          <GroupChatWindow
+            onBack={() => {
+              setActiveGroup(null);
+              setMobileShowChat(false);
+            }}
+            onStartCall={handleStartCall}
+          />
+        ) : activeChat ? (
           <ChatWindow
             onBack={() => {
               setMobileShowChat(false);

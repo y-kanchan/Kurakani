@@ -196,6 +196,85 @@ class SocketService {
     this.socket?.off('call:ice-candidate');
     this.socket?.off('call:unavailable');
   }
+
+  // ── Group Rooms ──────────────────────────────────────────────
+  joinGroupRoom(groupId: string) {
+    this.socket?.emit('group:join', groupId);
+  }
+
+  leaveGroupRoom(groupId: string) {
+    this.socket?.emit('group:leave', groupId);
+  }
+
+  // ── Group Messaging ──────────────────────────────────────────
+  sendGroupMessage(message: Record<string, unknown>) {
+    this.socket?.emit('group:message', message);
+  }
+
+  onGroupMessage(callback: (msg: Record<string, unknown>) => void) {
+    this.socket?.on('group:message', callback);
+  }
+
+  offGroupMessage() {
+    this.socket?.off('group:message');
+  }
+
+  // ── Group Typing ─────────────────────────────────────────────
+  startGroupTyping(groupId: string, senderId: string, senderName: string) {
+    this.socket?.emit('group:typing:start', { groupId, senderId, senderName });
+  }
+
+  stopGroupTyping(groupId: string, senderId: string) {
+    this.socket?.emit('group:typing:stop', { groupId, senderId });
+  }
+
+  onGroupTypingStart(callback: (data: { groupId: string; senderId: string; senderName: string }) => void) {
+    this.socket?.on('group:typing:start', callback);
+  }
+
+  onGroupTypingStop(callback: (data: { groupId: string; senderId: string }) => void) {
+    this.socket?.on('group:typing:stop', callback);
+  }
+
+  offGroupTyping() {
+    this.socket?.off('group:typing:start');
+    this.socket?.off('group:typing:stop');
+  }
+
+  // ── Group Member Events ───────────────────────────────────────
+  emitGroupMemberAdded(groupId: string, newMember: Record<string, unknown>) {
+    this.socket?.emit('group:member-added', { groupId, newMember });
+  }
+
+  emitGroupMemberRemoved(groupId: string, removedUserId: string) {
+    this.socket?.emit('group:member-removed', { groupId, removedUserId });
+  }
+
+  onGroupAdded(callback: (data: { groupId: string }) => void) {
+    this.socket?.on('group:added', callback);
+  }
+
+  onGroupRemoved(callback: (data: { groupId: string }) => void) {
+    this.socket?.on('group:removed', callback);
+  }
+
+  onGroupMemberAdded(callback: (data: { groupId: string; newMember: Record<string, unknown> }) => void) {
+    this.socket?.on('group:member-added', callback);
+  }
+
+  onGroupMemberRemoved(callback: (data: { groupId: string; removedUserId: string }) => void) {
+    this.socket?.on('group:member-removed', callback);
+  }
+
+  offGroupEvents() {
+    this.socket?.off('group:message');
+    this.socket?.off('group:typing:start');
+    this.socket?.off('group:typing:stop');
+    this.socket?.off('group:added');
+    this.socket?.off('group:removed');
+    this.socket?.off('group:member-added');
+    this.socket?.off('group:member-removed');
+  }
 }
 
 const socketService = new SocketService();

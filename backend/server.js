@@ -48,6 +48,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/friends', require('./routes/friends'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/groups', require('./routes/groups'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -61,6 +62,7 @@ app.get('/api/health', (req, res) => {
 const User = require('./models/User');
 const FriendRequest = require('./models/FriendRequest');
 const Message = require('./models/Message');
+const Group = require('./models/Group');
 
 // Map: userId -> socketId
 const onlineUsers = new Map();
@@ -99,9 +101,65 @@ io.on('connection', (socket) => {
       await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() });
     } catch (e) { /* ignore */ }
 
+    // Join all group rooms for this user
+    try {
+      const userGroups = await Group.find({ members: userId }).select('_id');
+      userGroups.forEach((g) => {
+        socket.join(`group:${g._id}`);
+        console.log(`🏠 User ${userId} joined room group:${g._id}`);
+      });
+    } catch (e) { console.error('Group room join error:', e); }
+
     // Broadcast online status to all connected clients
     io.emit('user:status', { userId, isOnline: true });
     console.log(`👤 User online: ${userId}`);
+  });
+
+  // ── Join a group room dynamically (when group is created/user added) ──
+  socket.on('group:join', (groupId) => {
+    socket.join(`group:${groupId}`);
+    console.log(`🏠 Socket ${socket.id} joined room group:${groupId}`);
+  });
+
+  socket.on('group:leave', (groupId) => {
+    socket.leave(`group:${groupId}`);
+    console.log(`🚪 Socket ${socket.id} left room group:${groupId}`);
+  });
+
+  // ── Group message broadcast ────────────────────────────────
+  socket.on('group:message', (message) => {
+    const groupId = message.group?._id || message.group;
+    if (!groupId) return;
+    console.log(`💬 Broadcasting group message to room group:${groupId}`);
+    // Broadcast to everyone in the room EXCEPT the sender
+    socket.to(`group:${groupId}`).emit('group:message', message);
+  });
+
+  // ── Group typing indicators ────────────────────────────────
+  socket.on('group:typing:start', ({ groupId, senderId, senderName }) => {
+    socket.to(`group:${groupId}`).emit('group:typing:start', { groupId, senderId, senderName });
+  });
+
+  socket.on('group:typing:stop', ({ groupId, senderId }) => {
+    socket.to(`group:${groupId}`).emit('group:typing:stop', { groupId, senderId });
+  });
+
+  // ── Group member events ────────────────────────────────────
+  socket.on('group:member-added', ({ groupId, newMember }) => {
+    // Let the newly added member know they should join the room
+    const newMemberSocket = onlineUsers.get(newMember._id || newMember);
+    if (newMemberSocket) {
+      io.to(newMemberSocket).emit('group:added', { groupId });
+    }
+    io.to(`group:${groupId}`).emit('group:member-added', { groupId, newMember });
+  });
+
+  socket.on('group:member-removed', ({ groupId, removedUserId }) => {
+    const removedSocket = onlineUsers.get(removedUserId);
+    if (removedSocket) {
+      io.to(removedSocket).emit('group:removed', { groupId });
+    }
+    io.to(`group:${groupId}`).emit('group:member-removed', { groupId, removedUserId });
   });
 
   // ── Send message via socket (real-time delivery) ──────────
